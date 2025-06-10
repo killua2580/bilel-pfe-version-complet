@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gym Power</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <header id="main-header" class="hidden">
+        <nav class="navbar">
+            <div class="nav-brand">
+                <h2>🥊 Gym Power</h2>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="#home" class="nav-link">Accueil</a></li>
+                <li><a href="#tournaments" class="nav-link">Tournois</a></li>
+                <li><a href="#profile" class="nav-link">Profil</a></li>
+                <li id="admin-nav" class="hidden"><a href="#admin" class="nav-link">Admin</a></li>
+                <li><a href="#logout" class="nav-link logout-btn">Déconnexion</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <!-- Page d'authentification -->
+        <section id="auth" class="page auth-page">
+            <div class="auth-container">
+                <div class="auth-header">
+                    <h1>🥊 Gym Power</h1>
+                    <p>Gérez votre équipe de boxe efficacement</p>
+                </div>
+                
+                <div class="auth-forms">
+                    <form id="login-form" class="auth-form">
+                        <h2>Connexion</h2>
+                        <div class="form-group">
+                            <input type="email" id="login-email" placeholder="Email" required>
+                        </div>
+                        <div class="form-group">
+                            <input type="password" id="login-password" placeholder="Mot de passe" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Se connecter</button>
+                    </form>
+
+                    <form id="signup-form" class="auth-form hidden">
+                        <h2>Inscription</h2>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <input type="text" id="signup-firstname" placeholder="Prénom" required>
+                            </div>
+                            <div class="form-group">
+                                <input type="text" id="signup-lastname" placeholder="Nom" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <input type="email" id="signup-email" placeholder="Email" required>
+                        </div>
+                        <div class="form-group">
+                            <input type="password" id="signup-password" placeholder="Mot de passe" required>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <input type="number" id="signup-weight" placeholder="Poids (kg)" required>
+                            </div>
+                            <div class="form-group">
+                                <input type="number" id="signup-age" placeholder="Âge" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <input type="file" id="signup-photo" accept="image/*">
+                        </div>
+                        <button type="submit" class="btn btn-primary">S'inscrire</button>
+                    </form>
+                </div>
+                
+                <button id="toggle-auth-mode" class="toggle-btn">Pas encore de compte ? S'inscrire</button>
+            </div>
+        </section>
+
+        <!-- Page d'accueil -->
+        <section id="home" class="page hidden">
+            <div class="page-header">
+                <h1>Tableau de bord</h1>
+                <p>Bienvenue dans votre espace combattant</p>
+            </div>
+            
+            <div class="dashboard-grid">
+                <div class="card">
+                    <h3>Tournois disponibles</h3>
+                    <div id="available-tournaments" class="tournament-list">
+                        <!-- Tournois disponibles seront chargés ici -->
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h3>Tournois à venir</h3>
+                    <div id="upcoming-tournaments" class="tournament-list">
+                        <!-- Tournois à venir seront chargés ici -->
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h3>Tournois passés</h3>
+                    <div id="past-tournaments" class="tournament-list">
+                        <!-- Tournois passés seront chargés ici -->
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h3>Notifications</h3>
+                    <div id="notifications-list" class="notifications">
+                        <!-- Notifications seront chargées ici -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Page des tournois -->
+        <section id="tournaments" class="page hidden">
+            <div class="page-header">
+                <h1>Tournois</h1>
+                <p>Découvrez et participez aux tournois</p>
+            </div>
+            
+            <div id="tournaments-container" class="tournaments-grid">
+                <!-- Les tournois seront chargés ici -->
+            </div>
+        </section>
+
+        <!-- Page de profil -->
+        <section id="profile" class="page hidden">
+            <div class="page-header">
+                <h1>Mon Profil</h1>
+                <p>Gérez vos informations personnelles</p>
+            </div>
+            
+            <div class="profile-container">
+                <div class="profile-card">
+                    <div class="profile-photo">
+                        <img id="profile-image" src="" alt="Photo de profil">
+                    </div>
+                    <div class="profile-info">
+                        <h2 id="profile-name"></h2>
+                        <p id="profile-email"></p>
+                    </div>
+                </div>
+                
+                <form id="profile-form" class="profile-form">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Prénom</label>
+                            <input type="text" id="profile-firstname" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Nom</label>
+                            <input type="text" id="profile-lastname" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Poids (kg)</label>
+                            <input type="number" id="profile-weight" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Âge</label>
+                            <input type="number" id="profile-age" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Photo de profil</label>
+                        <input type="file" id="profile-photo" accept="image/*">
+                    </div>
+                    <button type="submit" class="btn btn-primary">Mettre à jour</button>
+                </form>
+            </div>
+        </section>
+
+        <!-- Page d'administration -->
+        <section id="admin" class="page hidden">
+            <div class="page-header">
+                <h1>Administration</h1>
+                <p>Gérez les utilisateurs et les tournois</p>
+            </div>
+            
+            <div class="admin-tabs">
+                <button class="tab-btn active" data-tab="users">Utilisateurs</button>
+                <button class="tab-btn" data-tab="tournaments-admin">Tournois</button>
+                <button class="tab-btn" data-tab="fights">Combats</button>
+            </div>
+            
+            <div id="users-tab" class="tab-content active">
+                <div class="section-header">
+                    <h2>Gestion des utilisateurs</h2>
+                    <button id="add-user-btn" class="btn btn-primary">Ajouter un utilisateur</button>
+                </div>
+                <div id="users-list" class="users-grid">
+                    <!-- Liste des utilisateurs -->
+                </div>
+            </div>
+            
+            <div id="tournaments-admin-tab" class="tab-content">
+                <div class="section-header">
+                    <h2>Gestion des tournois</h2>
+                    <button id="add-tournament-btn" class="btn btn-primary">Créer un tournoi</button>
+                </div>
+                <div id="admin-tournaments-list" class="tournaments-grid">
+                    <!-- Liste des tournois pour admin -->
+                </div>
+            </div>
+            
+            <div id="fights-tab" class="tab-content">
+                <div class="section-header">
+                    <h2>Organisation des combats</h2>
+                </div>
+                <div id="fights-list" class="fights-grid">
+                    <!-- Liste des combats -->
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Modals -->
+    <div id="tournament-modal" class="modal hidden">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Créer un tournoi</h2>
+            <form id="tournament-form">
+                <div class="form-group">
+                    <label>Nom du tournoi</label>
+                    <input type="text" id="tournament-name" required>
+                </div>
+                <div class="form-group">
+                    <label>Description</label>
+                    <textarea id="tournament-description" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Date</label>
+                    <input type="datetime-local" id="tournament-date" required>
+                </div>
+                <div class="form-group">
+                    <label>Image</label>
+                    <input type="file" id="tournament-image" accept="image/*">
+                </div>
+                <button type="submit" class="btn btn-primary">Créer</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="js/performance.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/app.js"></script>
+    <script src="js/admin.js"></script>
+</body>
+</html>
+
+
