@@ -5,8 +5,8 @@ let currentUser = null;
 let supabase = null;
 
 // Initialisation de Supabase
-const supabaseUrl = 'https://idfuxmokbskldkhwsuue.supabase.co';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlkZnV4bW9rYnNrbGRraHdzdXVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk0Mjc5MjcsImV4cCI6MjA2NTAwMzkyN30.UBnqV6tRz39YG00HXy1LynS-McyU_6VV8lfFhhO4njg';
+const supabaseUrl = 'https://rubketdyxjiboittrqhc.supabase.co';
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ1YmtldGR5eGppYm9pdHRycWhjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk1NjkxNzUsImV4cCI6MjA2NTE0NTE3NX0.iCDRr-TYGn42okm21c7_DirMhJtnVK6wNEFKe7VCosI';
 
 document.addEventListener('DOMContentLoaded', async () => {
     // Initialiser Supabase

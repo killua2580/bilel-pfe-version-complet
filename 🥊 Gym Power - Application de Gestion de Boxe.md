@@ -25,9 +25,8 @@
 
 ### Installation
 1. Téléchargez ou clonez le projet
-2. Ouvrez le fichier `js/auth.js` et vérifiez que les clés Supabase sont correctement configurées :
-   ```javascript
-   const supabaseUrl = 'https://idfuxmokbskldkhwsuue.supabase.co';
+2. Ouvrez le fichier `js/auth.js` et vérifiez que les clés Supabase sont correctement configurées :   ```javascript
+   const supabaseUrl = 'https://rubketdyxjiboittrqhc.supabase.co';
    const supabaseAnonKey = 'votre_cle_api_ici';
    ```
 3. Ouvrez `index.html` dans votre navigateur ou servez les fichiers via un serveur web

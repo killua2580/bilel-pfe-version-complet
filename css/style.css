@@ -9,8 +9,55 @@ body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     line-height: 1.6;
     color: #333;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #ff4757 0%, #ff3838 25%, #ffffff 50%, #ff6b7d 75%, #c44569 100%);
+    background-size: 400% 400%;
+    animation: gradientShift 15s ease infinite;
     min-height: 100vh;
+    position: relative;
+    overflow-x: hidden;
+}
+
+/* Beautiful floating decorative elements */
+body::before {
+    content: '';
+    position: fixed;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 1px, transparent 1px);
+    background-size: 50px 50px;
+    animation: floatPattern 20s linear infinite;
+    pointer-events: none;
+    z-index: -1;
+}
+
+body::after {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: 
+        radial-gradient(circle at 20% 80%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(255, 71, 87, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 40% 40%, rgba(196, 69, 105, 0.1) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: -1;
+}
+
+@keyframes gradientShift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+@keyframes floatPattern {
+    0% { transform: translateX(0) translateY(0) rotate(0deg); }
+    33% { transform: translateX(-100px) translateY(-100px) rotate(120deg); }
+    66% { transform: translateX(100px) translateY(-200px) rotate(240deg); }
+    100% { transform: translateX(0) translateY(0) rotate(360deg); }
 }
 
 /* Utilitaires */
@@ -21,14 +68,16 @@ body {
 /* Header et Navigation */
 #main-header {
     background: rgba(255, 255, 255, 0.95);
+    -webkit-backdrop-filter: blur(10px);
     backdrop-filter: blur(10px);
-    box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 20px rgba(255, 71, 87, 0.1);
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
     z-index: 1000;
     transition: all 0.3s ease;
+    border-bottom: 2px solid rgba(255, 71, 87, 0.1);
 }
 
 .navbar {
@@ -41,7 +90,7 @@ body {
 }
 
 .nav-brand h2 {
-    color: #667eea;
+    color: #ff4757;
     font-size: 1.5rem;
     font-weight: bold;
 }
@@ -62,7 +111,7 @@ body {
 }
 
 .nav-link:hover {
-    background: #667eea;
+    background: #ff4757;
     color: white;
     transform: translateY(-2px);
 }
@@ -110,7 +159,7 @@ main {
 .auth-header h1 {
     font-size: 2.5rem;
     margin-bottom: 0.5rem;
-    background: linear-gradient(135deg, #667eea, #764ba2);
+    background: linear-gradient(135deg, #ff4757, #c44569);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -157,13 +206,14 @@ main {
     border-radius: 8px;
     font-size: 1rem;
     transition: all 0.3s ease;
+    background: rgba(255, 255, 255, 0.9);
 }
 
 .form-group input:focus,
 .form-group textarea:focus {
     outline: none;
-    border-color: #667eea;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    border-color: #ff4757;
+    box-shadow: 0 0 0 3px rgba(255, 71, 87, 0.1);
 }
 
 .form-group textarea {
@@ -186,23 +236,24 @@ main {
 }
 
 .btn-primary {
-    background: linear-gradient(135deg, #667eea, #764ba2);
+    background: linear-gradient(135deg, #ff4757, #c44569);
     color: white;
 }
 
 .btn-primary:hover {
     transform: translateY(-2px);
-    box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+    box-shadow: 0 10px 20px rgba(255, 71, 87, 0.3);
 }
 
 .btn-secondary {
-    background: #f8f9fa;
-    color: #333;
-    border: 2px solid #e1e5e9;
+    background: rgba(255, 255, 255, 0.9);
+    color: #ff4757;
+    border: 2px solid rgba(255, 71, 87, 0.2);
 }
 
 .btn-secondary:hover {
-    background: #e9ecef;
+    background: rgba(255, 71, 87, 0.1);
+    border-color: #ff4757;
 }
 
 .btn-danger {
@@ -218,7 +269,7 @@ main {
 .toggle-btn {
     background: none;
     border: none;
-    color: #667eea;
+    color: #ff4757;
     cursor: pointer;
     margin-top: 1rem;
     font-size: 0.9rem;
@@ -268,13 +319,15 @@ main {
     background: white;
     border-radius: 15px;
     padding: 2rem;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 10px 30px rgba(255, 71, 87, 0.1);
     transition: all 0.3s ease;
+    border: 1px solid rgba(255, 71, 87, 0.05);
 }
 
 .card:hover {
     transform: translateY(-5px);
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 20px 40px rgba(255, 71, 87, 0.15);
+    border-color: rgba(255, 71, 87, 0.1);
 }
 
 .card h3 {
@@ -308,7 +361,7 @@ main {
     height: 120px;
     border-radius: 50%;
     object-fit: cover;
-    border: 4px solid #667eea;
+    border: 4px solid #ff4757;
 }
 
 .profile-form {
@@ -340,7 +393,7 @@ main {
 }
 
 .tab-btn.active {
-    background: #667eea;
+    background: #ff4757;
     color: white;
 }
 
@@ -432,7 +485,7 @@ main {
 }
 
 .tournament-item .date {
-    color: #667eea;
+    color: #ff4757;
     font-weight: 500;
 }
 
@@ -537,7 +590,7 @@ main {
     content: '';
     width: 20px;
     height: 20px;
-    border: 2px solid #667eea;
+    border: 2px solid #ff4757;
     border-top: 2px solid transparent;
     border-radius: 50%;
     animation: spin 1s linear infinite;
@@ -552,8 +605,8 @@ main {
 
 /* Notifications */
 .notification-item {
-    border-left: 4px solid #667eea;
-    background: #f8f9ff;
+    border-left: 4px solid #ff4757;
+    background: #fff5f5;
 }
 
 .notification-item.unread {
@@ -592,7 +645,7 @@ main {
 }
 
 .badge-primary {
-    background-color: #667eea;
+    background-color: #ff4757;
     color: white;
 }
 
@@ -648,7 +701,7 @@ main {
 }
 
 .tournament-date {
-    color: #667eea;
+    color: #ff4757;
     font-weight: 500;
     margin-bottom: 1.5rem;
 }
@@ -684,7 +737,7 @@ main {
 
 /* Photo de profil par défaut */
 .profile-photo img {
-    background: linear-gradient(135deg, #667eea, #764ba2);
+    background: linear-gradient(135deg, #ff4757, #c44569);
 }
 
 .profile-photo img[src=""], 
@@ -701,7 +754,7 @@ main {
     width: 120px;
     height: 120px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #667eea, #764ba2);
+    background: linear-gradient(135deg, #ff4757, #c44569);
     color: white;
     margin: 0 auto;
 }
@@ -790,7 +843,7 @@ main {
 
 .fight-item .opponent {
     font-weight: 500;
-    color: #667eea;
+    color: #ff4757;
 }
 
 .fight-item .tournament {
@@ -869,7 +922,7 @@ main {
 
 /* Cartes tournoi admin */
 .tournament-admin-card {
-    border-left: 4px solid #667eea;
+    border-left: 4px solid #ff4757;
 }
 
 .tournament-admin-header {
@@ -909,7 +962,7 @@ main {
 
 /* Cartes de combat */
 .fight-card {
-    border-left: 4px solid #28a745;
+    border-left: 4px solid #ff4757;
 }
 
 .fight-header {
@@ -961,7 +1014,7 @@ main {
 .vs {
     font-weight: bold;
     font-size: 1.2rem;
-    color: #667eea;
+    color: #ff4757;
     margin: 0 1rem;
     padding: 0.5rem;
     background: white;
@@ -971,7 +1024,7 @@ main {
 }
 
 .fight-date {
-    color: #28a745;
+    color: #ff4757;
     font-weight: 500;
     margin: 0;
 }
@@ -1014,8 +1067,8 @@ main {
 .modal-content input:focus,
 .modal-content textarea:focus {
     outline: none;
-    border-color: #667eea;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    border-color: #ff4757;
+    box-shadow: 0 0 0 3px rgba(255, 71, 87, 0.1);
 }
 
 /* Responsive pour l'admin */
@@ -1077,18 +1130,18 @@ main {
 }
 
 .tournament-status.upcoming {
-    background: #d4edda;
-    color: #155724;
+    background: #ffe6e6;
+    color: #cc0000;
 }
 
 .tournament-status.ongoing {
-    background: #fff3cd;
-    color: #856404;
+    background: #fff3e6;
+    color: #ff6600;
 }
 
 .tournament-status.completed {
-    background: #d1ecf1;
-    color: #0c5460;
+    background: #f0f0f0;
+    color: #666666;
 }
 
 /* Grille pour les combats */
@@ -1156,7 +1209,6 @@ main {
 img {
     max-width: 100%;
     height: auto;
-    loading: lazy;
 }
 
 /* Optimisation des formulaires */
@@ -1203,7 +1255,7 @@ img {
 input:focus,
 textarea:focus,
 select:focus {
-    outline: 2px solid #007bff;
+    outline: 2px solid #ff4757;
     outline-offset: 2px;
 }
 
@@ -1247,6 +1299,7 @@ select:focus {
 /* Optimisation des modales et overlays */
 .modal {
     contain: layout style paint;
+    -webkit-backdrop-filter: blur(5px);
     backdrop-filter: blur(5px);
 }
 
