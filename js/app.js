@@ -103,6 +103,11 @@ function showMainApp() {
     document.getElementById('main-header').classList.remove('hidden');
     document.getElementById('auth').classList.add('hidden');
     
+    // Synchroniser les variables currentUser
+    if (window.currentUser) {
+        currentUser = window.currentUser;
+    }
+    
     // Vérifier si l'utilisateur est admin
     if (window.currentUser && (window.currentUser.email === 'admin@admin.com' || window.currentUser.id === 'admin-id')) {
         document.getElementById('admin-nav').classList.remove('hidden');
@@ -396,9 +401,10 @@ function showError(containerId, message = 'Erreur lors du chargement') {
 // Exposer les fonctions globalement pour les utiliser dans d'autres fichiers
 window.gymPower = {
     showPage,
+    showMainApp,
     loadDashboard,
     participateInTournament,
-    currentUser: () => currentUser,
+    currentUser: () => window.currentUser || currentUser,
     supabase: () => supabase
 };
 
@@ -680,6 +686,8 @@ async function loadAdminPanel() {
     // Charger les utilisateurs par défaut
     if (window.adminFunctions) {
         window.adminFunctions.loadUsers();
+    } else {
+        console.error('adminFunctions not available');
     }
 }
 

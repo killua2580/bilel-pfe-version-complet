@@ -28,9 +28,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const submitBtn = loginForm.querySelector('button[type="submit"]');
         const originalText = submitBtn.textContent;
         submitBtn.textContent = 'Connexion...';
-        submitBtn.disabled = true;
-
-        try {
+        submitBtn.disabled = true;        try {
             // Vérifier d'abord si c'est l'admin avec les identifiants par défaut
             if (email === 'admin@admin.com' && password === 'admin123') {
                 // Simuler une connexion admin réussie

@@ -28,7 +28,7 @@ function setupAdminEvents() {
 // Charger le panneau d'administration
 async function loadAdminPanel() {
     // Vérifier si l'utilisateur est admin
-    if (!currentUser || currentUser.email !== 'admin@admin.com') {
+    if (!window.currentUser || window.currentUser.email !== 'admin@admin.com') {
         document.getElementById('admin').innerHTML = '<div class="error">Accès non autorisé</div>';
         return;
     }
