@@ -237,39 +237,72 @@ async function loadUpcomingTournaments() {
     }
     
     try {
-        const { data, error } = await supabase
-            .from('participants')
-            .select(`
-                tournaments (
-                    id,
-                    name,
-                    description,
-                    date
-                )
-            `)
-            .eq('user_id', user.id);
+        // Debug logging
+        console.log('Loading upcoming tournaments for user:', user);
+        
+        // For admin users, show all upcoming tournaments
+        if (user.isAdmin || user.email === 'admin@admin.com') {
+            const { data, error } = await supabase
+                .from('tournaments')
+                .select('*')
+                .gte('date', new Date().toISOString())
+                .order('date', { ascending: true });
+                
+            console.log('Admin upcoming tournaments query result:', { data, error });
+                
+            if (error) throw error;
             
-        if (error) throw error;
-        
-        const upcomingTournaments = data
-            .map(p => p.tournaments)
-            .filter(t => t && new Date(t.date) > new Date());
-        
-        if (upcomingTournaments.length === 0) {
-            container.innerHTML = '<p>Aucun tournoi à venir</p>';
-            return;
+            if (data.length === 0) {
+                container.innerHTML = '<p>Aucun tournoi à venir</p>';
+                return;
+            }
+            
+            container.innerHTML = data.map(tournament => `
+                <div class="tournament-item">
+                    <h4>${tournament.name}</h4>
+                    <p>${tournament.description}</p>
+                    <p class="date">${new Date(tournament.date).toLocaleDateString('fr-FR')}</p>
+                    <span class="admin-badge">Vue Admin</span>
+                </div>
+            `).join('');
+        } else {
+            // For regular users, show their participated tournaments
+            const { data, error } = await supabase
+                .from('participants')
+                .select(`
+                    tournaments (
+                        id,
+                        name,
+                        description,
+                        date
+                    )
+                `)
+                .eq('user_id', user.id);
+                
+            console.log('User upcoming tournaments query result:', { data, error });
+                
+            if (error) throw error;
+            
+            const upcomingTournaments = data
+                .map(p => p.tournaments)
+                .filter(t => t && new Date(t.date) > new Date());
+            
+            if (upcomingTournaments.length === 0) {
+                container.innerHTML = '<p>Aucun tournoi à venir</p>';
+                return;
+            }
+            
+            container.innerHTML = upcomingTournaments.map(tournament => `
+                <div class="tournament-item">
+                    <h4>${tournament.name}</h4>
+                    <p>${tournament.description}</p>
+                    <p class="date">${new Date(tournament.date).toLocaleDateString('fr-FR')}</p>
+                </div>
+            `).join('');
         }
-        
-        container.innerHTML = upcomingTournaments.map(tournament => `
-            <div class="tournament-item">
-                <h4>${tournament.name}</h4>
-                <p>${tournament.description}</p>
-                <p class="date">${new Date(tournament.date).toLocaleDateString('fr-FR')}</p>
-            </div>
-        `).join('');
     } catch (error) {
         container.innerHTML = '<p>Erreur lors du chargement</p>';
-        console.error('Erreur:', error);
+        console.error('Erreur loadUpcomingTournaments:', error);
     }
 }
 
@@ -286,39 +319,72 @@ async function loadPastTournaments() {
     }
     
     try {
-        const { data, error } = await supabase
-            .from('participants')
-            .select(`
-                tournaments (
-                    id,
-                    name,
-                    description,
-                    date
-                )
-            `)
-            .eq('user_id', user.id);
+        // Debug logging
+        console.log('Loading past tournaments for user:', user);
+        
+        // For admin users, show all past tournaments
+        if (user.isAdmin || user.email === 'admin@admin.com') {
+            const { data, error } = await supabase
+                .from('tournaments')
+                .select('*')
+                .lt('date', new Date().toISOString())
+                .order('date', { ascending: false });
+                
+            console.log('Admin past tournaments query result:', { data, error });
+                
+            if (error) throw error;
             
-        if (error) throw error;
-        
-        const pastTournaments = data
-            .map(p => p.tournaments)
-            .filter(t => t && new Date(t.date) < new Date());
-        
-        if (pastTournaments.length === 0) {
-            container.innerHTML = '<p>Aucun tournoi passé</p>';
-            return;
+            if (data.length === 0) {
+                container.innerHTML = '<p>Aucun tournoi passé</p>';
+                return;
+            }
+            
+            container.innerHTML = data.map(tournament => `
+                <div class="tournament-item">
+                    <h4>${tournament.name}</h4>
+                    <p>${tournament.description}</p>
+                    <p class="date">${new Date(tournament.date).toLocaleDateString('fr-FR')}</p>
+                    <span class="admin-badge">Vue Admin</span>
+                </div>
+            `).join('');
+        } else {
+            // For regular users, show their participated tournaments
+            const { data, error } = await supabase
+                .from('participants')
+                .select(`
+                    tournaments (
+                        id,
+                        name,
+                        description,
+                        date
+                    )
+                `)
+                .eq('user_id', user.id);
+                
+            console.log('User past tournaments query result:', { data, error });
+                
+            if (error) throw error;
+            
+            const pastTournaments = data
+                .map(p => p.tournaments)
+                .filter(t => t && new Date(t.date) < new Date());
+            
+            if (pastTournaments.length === 0) {
+                container.innerHTML = '<p>Aucun tournoi passé</p>';
+                return;
+            }
+            
+            container.innerHTML = pastTournaments.map(tournament => `
+                <div class="tournament-item">
+                    <h4>${tournament.name}</h4>
+                    <p>${tournament.description}</p>
+                    <p class="date">${new Date(tournament.date).toLocaleDateString('fr-FR')}</p>
+                </div>
+            `).join('');
         }
-        
-        container.innerHTML = pastTournaments.map(tournament => `
-            <div class="tournament-item">
-                <h4>${tournament.name}</h4>
-                <p>${tournament.description}</p>
-                <p class="date">${new Date(tournament.date).toLocaleDateString('fr-FR')}</p>
-            </div>
-        `).join('');
     } catch (error) {
         container.innerHTML = '<p>Erreur lors du chargement</p>';
-        console.error('Erreur:', error);
+        console.error('Erreur loadPastTournaments:', error);
     }
 }
 
@@ -335,30 +401,64 @@ async function loadNotifications() {
     }
     
     try {
-        const { data, error } = await supabase
-            .from('notifications')
-            .select('*')
-            .eq('user_id', user.id)
-            .order('created_at', { ascending: false })
-            .limit(5);
+        // Debug logging
+        console.log('Loading notifications for user:', user);
+        
+        // For admin users, show all recent notifications
+        if (user.isAdmin || user.email === 'admin@admin.com') {
+            const { data, error } = await supabase
+                .from('notifications')
+                .select('*, users(first_name, last_name)')
+                .order('created_at', { ascending: false })
+                .limit(10);
+                
+            console.log('Admin notifications query result:', { data, error });
+                
+            if (error) throw error;
             
-        if (error) throw error;
-        
-        if (data.length === 0) {
-            container.innerHTML = '<p>Aucune notification</p>';
-            return;
+            if (data.length === 0) {
+                container.innerHTML = '<p>Aucune notification système</p>';
+                return;
+            }
+            
+            container.innerHTML = data.map(notification => `
+                <div class="notification-item ${notification.is_read ? '' : 'unread'}">
+                    <h5>${notification.title}</h5>
+                    <p>${notification.message}</p>
+                    <p class="user-info">Pour: ${notification.users?.first_name} ${notification.users?.last_name}</p>
+                    <p class="time">${new Date(notification.created_at).toLocaleDateString('fr-FR')}</p>
+                    <span class="admin-badge">Vue Admin</span>
+                </div>
+            `).join('');
+        } else {
+            // For regular users, show their notifications
+            const { data, error } = await supabase
+                .from('notifications')
+                .select('*')
+                .eq('user_id', user.id)
+                .order('created_at', { ascending: false })
+                .limit(5);
+                
+            console.log('User notifications query result:', { data, error });
+                
+            if (error) throw error;
+            
+            if (data.length === 0) {
+                container.innerHTML = '<p>Aucune notification</p>';
+                return;
+            }
+            
+            container.innerHTML = data.map(notification => `
+                <div class="notification-item ${notification.is_read ? '' : 'unread'}">
+                    <h5>${notification.title}</h5>
+                    <p>${notification.message}</p>
+                    <p class="time">${new Date(notification.created_at).toLocaleDateString('fr-FR')}</p>
+                </div>
+            `).join('');
         }
-        
-        container.innerHTML = data.map(notification => `
-            <div class="notification-item ${notification.is_read ? '' : 'unread'}">
-                <h5>${notification.title}</h5>
-                <p>${notification.message}</p>
-                <p class="time">${new Date(notification.created_at).toLocaleDateString('fr-FR')}</p>
-            </div>
-        `).join('');
     } catch (error) {
         container.innerHTML = '<p>Erreur lors du chargement</p>';
-        console.error('Erreur:', error);
+        console.error('Erreur loadNotifications:', error);
     }
 }
 
@@ -751,15 +851,25 @@ async function loadAdminPanel() {
         return;
     }
     
-    // Charger les utilisateurs par défaut et configurer les onglets
-    if (window.adminFunctions) {
-        window.adminFunctions.loadUsers();
-        // Assurer que les événements des onglets sont configurés
-        if (window.adminFunctions.setupAdminTabEvents) {
-            window.adminFunctions.setupAdminTabEvents();
+    try {
+        // Charger les données du dashboard (visible dans la section admin)
+        await loadAvailableTournaments();
+        await loadUpcomingTournaments();
+        await loadPastTournaments();
+        await loadNotifications();
+        
+        // Charger les utilisateurs par défaut et configurer les onglets
+        if (window.adminFunctions) {
+            window.adminFunctions.loadUsers();
+            // Assurer que les événements des onglets sont configurés
+            if (window.adminFunctions.setupAdminTabEvents) {
+                window.adminFunctions.setupAdminTabEvents();
+            }
+        } else {
+            console.error('adminFunctions not available');
         }
-    } else {
-        console.error('adminFunctions not available');
+    } catch (error) {
+        console.error('Erreur lors du chargement du panneau admin:', error);
     }
 }
 

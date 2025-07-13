@@ -311,7 +311,7 @@ async function organizeFights(tournamentId) {
             .from('participants')
             .select(`
                 user_id,
-                users (id, first_name, last_name, weight)
+                users (id, first_name, last_name, weight, age)
             `)
             .eq('tournament_id', tournamentId);
             
@@ -322,24 +322,40 @@ async function organizeFights(tournamentId) {
             return;
         }
         
-        // Créer des paires de combattants
+        // Créer des paires de combattants avec le nouvel algorithme
         const fighters = participants.map(p => p.users);
         const fights = [];
         
-        // Algorithme simple pour créer des paires
-        for (let i = 0; i < fighters.length - 1; i += 2) {
-            if (fighters[i + 1]) {
-                fights.push({
-                    tournament_id: tournamentId,
-                    fighter1_id: fighters[i].id,
-                    fighter2_id: fighters[i + 1].id,
-                    fight_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // Dans une semaine
-                });
-            }
+        // Nouvel algorithme basé sur le poids et l'âge
+        console.log('Recherche de combats compatibles basés sur le poids et l\'âge...');
+        const matchingResult = findOptimalMatches(fighters);
+        
+        // Créer les combats pour les paires compatibles
+        for (const match of matchingResult.matches) {
+            const fightDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+            fights.push({
+                tournament_id: tournamentId,
+                fighter1_id: match.fighter1.id,
+                fighter2_id: match.fighter2.id,
+                fight_date: fightDate
+            });
+            
+            console.log(`Combat créé: ${match.fighter1.first_name} ${match.fighter1.last_name} (${match.fighter1.weight}kg, ${match.fighter1.age}ans) vs ${match.fighter2.first_name} ${match.fighter2.last_name} (${match.fighter2.weight}kg, ${match.fighter2.age}ans)`);
+        }
+        
+        // Informer l'utilisateur des combattants non appariés
+        if (matchingResult.unmatchedFighters.length > 0) {
+            const unmatchedNames = matchingResult.unmatchedFighters.map(f => `${f.first_name} ${f.last_name} (${f.weight}kg, ${f.age}ans)`).join(', ');
+            console.log(`Combattants non appariés (pas de compatibilité trouvée): ${unmatchedNames}`);
         }
         
         if (fights.length === 0) {
-            alert('Impossible de créer des combats avec ce nombre de participants');
+            if (matchingResult.unmatchedFighters.length > 0) {
+                const unmatchedDetails = matchingResult.unmatchedFighters.map(f => `• ${f.first_name} ${f.last_name} (${f.weight}kg, ${f.age}ans)`).join('\n');
+                alert(`Aucun combat n'a pu être organisé car aucun combattant ne respecte les critères de compatibilité (max 5kg et 3 ans de différence).\n\nCombattants inscrits:\n${unmatchedDetails}`);
+            } else {
+                alert('Impossible de créer des combats avec ce nombre de participants');
+            }
             return;
         }
         
@@ -355,7 +371,12 @@ async function organizeFights(tournamentId) {
             await sendFightNotifications(fight);
         }
         
-        alert(`${fights.length} combat(s) organisé(s) avec succès !`);
+        // Message de succès détaillé
+        let successMessage = `${fights.length} combat(s) organisé(s) avec succès !`;
+        if (matchingResult.unmatchedFighters.length > 0) {
+            successMessage += `\n\nNote: ${matchingResult.unmatchedFighters.length} combattant(s) n'ont pas pu être appariés (critères de compatibilité non respectés).`;
+        }
+        alert(successMessage);
         loadFights(); // Recharger la liste des combats
         
     } catch (error) {
@@ -364,34 +385,121 @@ async function organizeFights(tournamentId) {
     }
 }
 
+// Helper function to check if two fighters are compatible for a fight
+function areFightersCompatible(fighter1, fighter2) {
+    // Check weight difference (maximum 5kg)
+    const weightDiff = Math.abs(fighter1.weight - fighter2.weight);
+    if (weightDiff > 5) {
+        return false;
+    }
+    
+    // Check age difference (maximum 3 years)
+    const ageDiff = Math.abs(fighter1.age - fighter2.age);
+    if (ageDiff > 3) {
+        return false;
+    }
+    
+    return true;
+}
+
+// Enhanced fight matching algorithm using weight and age criteria
+function findOptimalMatches(fighters) {
+    const matches = [];
+    const used = new Set(); // Track fighters already matched
+    
+    for (let i = 0; i < fighters.length; i++) {
+        if (used.has(i)) continue; // Skip already matched fighters
+        
+        const fighter1 = fighters[i];
+        let bestMatch = null;
+        let bestMatchIndex = -1;
+        
+        // Find the best compatible opponent for this fighter
+        for (let j = i + 1; j < fighters.length; j++) {
+            if (used.has(j)) continue; // Skip already matched fighters
+            
+            const fighter2 = fighters[j];
+            
+            // Check if fighters are compatible
+            if (areFightersCompatible(fighter1, fighter2)) {
+                bestMatch = fighter2;
+                bestMatchIndex = j;
+                break; // Take the first compatible match found
+            }
+        }
+        
+        // If we found a compatible match, create the pairing
+        if (bestMatch) {
+            matches.push({
+                fighter1: fighter1,
+                fighter2: bestMatch
+            });
+            used.add(i);
+            used.add(bestMatchIndex);
+        }
+    }
+    
+    return {
+        matches: matches,
+        unmatchedFighters: fighters.filter((_, index) => !used.has(index))
+    };
+}
+
 // Envoyer des notifications de combat
 async function sendFightNotifications(fight) {
     try {
-        // Récupérer les informations des combattants
+        // Récupérer les informations complètes des combattants
         const { data: fighter1 } = await window.gymPower.supabase()
             .from('users')
-            .select('first_name, last_name')
+            .select('first_name, last_name, weight, age')
             .eq('id', fight.fighter1_id)
             .single();
             
         const { data: fighter2 } = await window.gymPower.supabase()
             .from('users')
-            .select('first_name, last_name')
+            .select('first_name, last_name, weight, age')
             .eq('id', fight.fighter2_id)
             .single();
         
-        // Créer les notifications
+        // Calculer les différences de poids et d'âge
+        const weightDiff = Math.abs(fighter1.weight - fighter2.weight);
+        const ageDiff = Math.abs(fighter1.age - fighter2.age);
+        
+        // Formatage de la date avec heure
+        const fightDateTime = new Date(fight.fight_date);
+        const dateStr = fightDateTime.toLocaleDateString('fr-FR', { 
+            weekday: 'long', 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+        });
+        const timeStr = fightDateTime.toLocaleTimeString('fr-FR', { 
+            hour: '2-digit', 
+            minute: '2-digit' 
+        });
+        
+        // Créer les notifications détaillées
         const notifications = [
             {
                 user_id: fight.fighter1_id,
-                title: 'Nouveau combat programmé',
-                message: `Vous affronterez ${fighter2.first_name} ${fighter2.last_name} le ${formatDate(fight.fight_date)}`,
+                title: '🥊 Nouveau combat programmé !',
+                message: `Combat confirmé contre ${fighter2.first_name} ${fighter2.last_name}\n` +
+                        `📊 Profil adversaire: ${fighter2.weight}kg, ${fighter2.age} ans\n` +
+                        `⚖️ Différence de poids: ${weightDiff}kg\n` +
+                        `📅 Date: ${dateStr}\n` +
+                        `🕐 Heure: ${timeStr}\n` +
+                        `Bonne chance pour votre combat !`,
                 is_read: false
             },
             {
                 user_id: fight.fighter2_id,
-                title: 'Nouveau combat programmé',
-                message: `Vous affronterez ${fighter1.first_name} ${fighter1.last_name} le ${formatDate(fight.fight_date)}`,
+                title: '🥊 Nouveau combat programmé !',
+                message: `Combat confirmé contre ${fighter1.first_name} ${fighter1.last_name}\n` +
+                        `📊 Profil adversaire: ${fighter1.weight}kg, ${fighter1.age} ans\n` +
+                        `⚖️ Différence de poids: ${weightDiff}kg\n` +
+                        `📅 Date: ${dateStr}\n` +
+                        `🕐 Heure: ${timeStr}\n` +
+                        `Bonne chance pour votre combat !`,
                 is_read: false
             }
         ];
@@ -726,7 +834,9 @@ window.adminFunctions = {
     setupAdminTabEvents,
     formatDate,
     showLoading,
-    showError
+    showError,
+    areFightersCompatible,
+    findOptimalMatches
 };
 
 // Ajouter les fonctions au namespace global pour les utiliser dans le HTML
