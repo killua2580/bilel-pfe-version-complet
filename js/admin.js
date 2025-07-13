@@ -23,13 +23,26 @@ function setupAdminEvents() {
     if (tournamentForm) {
         tournamentForm.addEventListener('submit', createTournament);
     }
+    
+    // Formulaire d'ajout d'utilisateur
+    const addUserForm = document.getElementById('add-user-form');
+    if (addUserForm) {
+        addUserForm.addEventListener('submit', addUser);
+    }
+    
+    // Gestion des onglets admin
+    setupAdminTabEvents();
 }
 
 // Charger le panneau d'administration
 async function loadAdminPanel() {
     // Vérifier si l'utilisateur est admin
-    if (!window.currentUser || window.currentUser.email !== 'admin@admin.com') {
-        document.getElementById('admin').innerHTML = '<div class="error">Accès non autorisé</div>';
+    const user = window.gymPower ? window.gymPower.getCurrentUser() : window.currentUser;
+    if (!user || (user.email !== 'admin@admin.com' && user.id !== 'admin-id' && !user.isAdmin)) {
+        const adminContainer = document.getElementById('admin');
+        if (adminContainer) {
+            adminContainer.innerHTML = '<div class="error">Accès non autorisé</div>';
+        }
         return;
     }
     
@@ -40,9 +53,18 @@ async function loadAdminPanel() {
 // Gestion des utilisateurs
 async function loadUsers() {
     const container = document.getElementById('users-list');
-    showLoading('users-list');
+    if (!container) {
+        console.error('users-list container not found');
+        return;
+    }
+    
+    container.innerHTML = '<div class="loading">Chargement...</div>';
     
     try {
+        if (!window.gymPower || !window.gymPower.supabase) {
+            throw new Error('Base de données non disponible');
+        }
+        
         const { data, error } = await window.gymPower.supabase()
             .from('users')
             .select('*')
@@ -75,7 +97,7 @@ async function loadUsers() {
             </div>
         `).join('');
     } catch (error) {
-        showError('users-list', 'Erreur lors du chargement des utilisateurs');
+        container.innerHTML = '<p class="error">Erreur lors du chargement des utilisateurs: ' + error.message + '</p>';
         console.error('Erreur:', error);
     }
 }
@@ -124,9 +146,18 @@ async function deleteUser(userId) {
 // Gestion des tournois (admin)
 async function loadAdminTournaments() {
     const container = document.getElementById('admin-tournaments-list');
-    showLoading('admin-tournaments-list');
+    if (!container) {
+        console.error('admin-tournaments-list container not found');
+        return;
+    }
+    
+    container.innerHTML = '<div class="loading">Chargement...</div>';
     
     try {
+        if (!window.gymPower || !window.gymPower.supabase) {
+            throw new Error('Base de données non disponible');
+        }
+        
         const { data, error } = await window.gymPower.supabase()
             .from('tournaments')
             .select(`
@@ -146,7 +177,7 @@ async function loadAdminTournaments() {
         }
         
         container.innerHTML = data.map(tournament => {
-            const participantCount = tournament.participants.length;
+            const participantCount = tournament.participants ? tournament.participants.length : 0;
             const isPast = new Date(tournament.date) < new Date();
             
             return `
@@ -162,22 +193,40 @@ async function loadAdminTournaments() {
                     <p><strong>Date:</strong> ${formatDate(tournament.date)}</p>
                     <p><strong>Participants:</strong> ${participantCount}</p>
                     <div class="participants-list">
-                        ${tournament.participants.map(p => `
-                            <span class="participant-badge">${p.users.first_name} ${p.users.last_name}</span>
-                        `).join('')}
+                        ${tournament.participants ? tournament.participants.map(p => `
+                            <span class="participant-badge">${p.users ? p.users.first_name + ' ' + p.users.last_name : 'Utilisateur supprimé'}</span>
+                        `).join('') : ''}
                     </div>
                 </div>
             `;
         }).join('');
     } catch (error) {
-        showError('admin-tournaments-list', 'Erreur lors du chargement des tournois');
+        container.innerHTML = '<p class="error">Erreur lors du chargement des tournois: ' + error.message + '</p>';
         console.error('Erreur:', error);
     }
 }
 
 // Afficher le modal de création de tournoi
 function showTournamentModal() {
-    document.getElementById('tournament-modal').classList.remove('hidden');
+    const modal = document.getElementById('tournament-modal');
+    if (modal) {
+        modal.classList.remove('hidden');
+        
+        // Setup modal close events
+        const closeBtn = modal.querySelector('.close');
+        if (closeBtn) {
+            closeBtn.onclick = () => modal.classList.add('hidden');
+        }
+        
+        // Close modal when clicking outside
+        modal.onclick = (e) => {
+            if (e.target === modal) {
+                modal.classList.add('hidden');
+            }
+        };
+    } else {
+        console.error('Tournament modal not found');
+    }
 }
 
 // Créer un tournoi
@@ -359,9 +408,18 @@ async function sendFightNotifications(fight) {
 // Charger les combats
 async function loadFights() {
     const container = document.getElementById('fights-list');
-    showLoading('fights-list');
+    if (!container) {
+        console.error('fights-list container not found');
+        return;
+    }
+    
+    container.innerHTML = '<div class="loading">Chargement...</div>';
     
     try {
+        if (!window.gymPower || !window.gymPower.supabase) {
+            throw new Error('Base de données non disponible');
+        }
+        
         const { data, error } = await window.gymPower.supabase()
             .from('fights')
             .select(`
@@ -382,19 +440,19 @@ async function loadFights() {
         container.innerHTML = data.map(fight => `
             <div class="card fight-card">
                 <div class="fight-header">
-                    <h4>${fight.tournaments.name}</h4>
+                    <h4>${fight.tournaments ? fight.tournaments.name : 'Tournoi supprimé'}</h4>
                     <button class="btn btn-danger btn-sm" onclick="deleteFight('${fight.id}')">Annuler</button>
                 </div>
                 <div class="fight-details">
                     <div class="fighters">
                         <div class="fighter">
-                            <strong>${fight.fighter1.first_name} ${fight.fighter1.last_name}</strong>
-                            <span class="weight">${fight.fighter1.weight} kg</span>
+                            <strong>${fight.fighter1 ? fight.fighter1.first_name + ' ' + fight.fighter1.last_name : 'Combattant supprimé'}</strong>
+                            <span class="weight">${fight.fighter1 ? fight.fighter1.weight + ' kg' : 'N/A'}</span>
                         </div>
                         <div class="vs">VS</div>
                         <div class="fighter">
-                            <strong>${fight.fighter2.first_name} ${fight.fighter2.last_name}</strong>
-                            <span class="weight">${fight.fighter2.weight} kg</span>
+                            <strong>${fight.fighter2 ? fight.fighter2.first_name + ' ' + fight.fighter2.last_name : 'Combattant supprimé'}</strong>
+                            <span class="weight">${fight.fighter2 ? fight.fighter2.weight + ' kg' : 'N/A'}</span>
                         </div>
                     </div>
                     <p class="fight-date"><strong>Date:</strong> ${formatDate(fight.fight_date)}</p>
@@ -402,7 +460,7 @@ async function loadFights() {
             </div>
         `).join('');
     } catch (error) {
-        showError('fights-list', 'Erreur lors du chargement des combats');
+        container.innerHTML = '<p class="error">Erreur lors du chargement des combats: ' + error.message + '</p>';
         console.error('Erreur:', error);
     }
 }
@@ -461,6 +519,36 @@ async function sendCustomNotification() {
 
 // Mettre à jour les onglets admin
 function updateAdminTab(tabName) {
+    console.log('Updating admin tab:', tabName);
+    switchAdminTab(tabName);
+}
+
+// Setup admin tab events
+function setupAdminTabEvents() {
+    const tabButtons = document.querySelectorAll('.tab-btn');
+    
+    tabButtons.forEach(button => {
+        button.addEventListener('click', (e) => {
+            const targetTab = button.getAttribute('data-tab');
+            switchAdminTab(targetTab);
+            
+            // Update active states
+            tabButtons.forEach(btn => btn.classList.remove('active'));
+            button.classList.add('active');
+            
+            // Update tab content visibility
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.getElementById(targetTab + '-tab').classList.add('active');
+        });
+    });
+}
+
+// Switch admin tab and load appropriate content
+function switchAdminTab(tabName) {
+    console.log('Switching to admin tab:', tabName);
+    
     switch(tabName) {
         case 'users':
             loadUsers();
@@ -471,6 +559,151 @@ function updateAdminTab(tabName) {
         case 'fights':
             loadFights();
             break;
+        default:
+            console.error('Unknown admin tab:', tabName);
+    }
+}
+
+// Show Add User Modal
+function showAddUserModal() {
+    const modal = document.getElementById('add-user-modal');
+    if (modal) {
+        modal.classList.remove('hidden');
+        
+        // Setup modal close events
+        const closeBtn = modal.querySelector('.close');
+        if (closeBtn) {
+            closeBtn.onclick = () => modal.classList.add('hidden');
+        }
+        
+        // Close modal when clicking outside
+        modal.onclick = (e) => {
+            if (e.target === modal) {
+                modal.classList.add('hidden');
+            }
+        };
+    } else {
+        console.error('Add user modal not found');
+    }
+}
+
+// Add User Function
+async function addUser(e) {
+    e.preventDefault();
+    
+    const form = e.target;
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const originalText = submitBtn.textContent;
+    
+    // Get form data
+    const userData = {
+        first_name: form['add-user-firstname'].value.trim(),
+        last_name: form['add-user-lastname'].value.trim(),
+        email: form['add-user-email'].value.trim(),
+        password: form['add-user-password'].value,
+        weight: parseInt(form['add-user-weight'].value),
+        age: parseInt(form['add-user-age'].value),
+        photo: null // For now, we don't handle file upload
+    };
+    
+    // Validation
+    if (!userData.first_name || !userData.last_name || !userData.email || !userData.password) {
+        alert('Veuillez remplir tous les champs obligatoires');
+        return;
+    }
+    
+    if (userData.password.length < 6) {
+        alert('Le mot de passe doit contenir au moins 6 caractères');
+        return;
+    }
+    
+    if (userData.weight <= 0 || userData.age <= 0 || userData.age > 120) {
+        alert('Veuillez entrer des valeurs valides pour le poids et l\'âge');
+        return;
+    }
+    
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(userData.email)) {
+        alert('Veuillez entrer un email valide');
+        return;
+    }
+    
+    submitBtn.textContent = 'Ajout en cours...';
+    submitBtn.disabled = true;
+    
+    try {
+        if (!window.gymPower || !window.gymPower.supabase) {
+            throw new Error('Base de données non disponible');
+        }
+        
+        // Check if email already exists
+        const { data: existingUser } = await window.gymPower.supabase()
+            .from('users')
+            .select('email')
+            .eq('email', userData.email)
+            .single();
+            
+        if (existingUser) {
+            throw new Error('Un utilisateur avec cet email existe déjà');
+        }
+        
+        // Generate UUID for new user
+        userData.id = crypto.randomUUID();
+        
+        // Insert new user
+        const { error } = await window.gymPower.supabase()
+            .from('users')
+            .insert([userData]);
+            
+        if (error) throw error;
+        
+        alert('Utilisateur ajouté avec succès !');
+        
+        // Close modal and reset form
+        document.getElementById('add-user-modal').classList.add('hidden');
+        form.reset();
+        
+        // Reload users list
+        loadUsers();
+        
+    } catch (error) {
+        console.error('Erreur lors de l\'ajout de l\'utilisateur:', error);
+        alert('Erreur lors de l\'ajout: ' + error.message);
+    } finally {
+        submitBtn.textContent = originalText;
+        submitBtn.disabled = false;
+    }
+}
+
+// Utility functions for admin panel
+function formatDate(dateString) {
+    if (!dateString) return 'Date non définie';
+    
+    try {
+        return new Date(dateString).toLocaleDateString('fr-FR', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    } catch (error) {
+        return 'Date invalide';
+    }
+}
+
+function showLoading(containerId) {
+    const container = document.getElementById(containerId);
+    if (container) {
+        container.innerHTML = '<div class="loading">Chargement...</div>';
+    }
+}
+
+function showError(containerId, message = 'Erreur lors du chargement') {
+    const container = document.getElementById(containerId);
+    if (container) {
+        container.innerHTML = `<p class="error">${message}</p>`;
     }
 }
 
@@ -478,14 +711,22 @@ function updateAdminTab(tabName) {
 window.adminFunctions = {
     loadUsers,
     deleteUser,
+    addUser,
+    showAddUserModal,
     loadAdminTournaments,
     createTournament,
+    showTournamentModal,
     deleteTournament,
     organizeFights,
     loadFights,
     deleteFight,
     sendCustomNotification,
-    updateAdminTab
+    updateAdminTab,
+    switchAdminTab,
+    setupAdminTabEvents,
+    formatDate,
+    showLoading,
+    showError
 };
 
 // Ajouter les fonctions au namespace global pour les utiliser dans le HTML
@@ -493,4 +734,6 @@ window.deleteUser = deleteUser;
 window.deleteTournament = deleteTournament;
 window.organizeFights = organizeFights;
 window.deleteFight = deleteFight;
+window.showAddUserModal = showAddUserModal;
+window.showTournamentModal = showTournamentModal;
 

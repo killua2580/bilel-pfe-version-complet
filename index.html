@@ -222,6 +222,50 @@
     </main>
 
     <!-- Modals -->
+    <!-- Add User Modal -->
+    <div id="add-user-modal" class="modal hidden">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Ajouter un utilisateur</h2>
+            <form id="add-user-form">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Prénom</label>
+                        <input type="text" id="add-user-firstname" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Nom</label>
+                        <input type="text" id="add-user-lastname" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="add-user-email" required>
+                </div>
+                <div class="form-group">
+                    <label>Mot de passe</label>
+                    <input type="password" id="add-user-password" required minlength="6">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Poids (kg)</label>
+                        <input type="number" id="add-user-weight" required min="1">
+                    </div>
+                    <div class="form-group">
+                        <label>Âge</label>
+                        <input type="number" id="add-user-age" required min="1" max="120">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Photo (optionnel)</label>
+                    <input type="file" id="add-user-photo" accept="image/*">
+                </div>
+                <button type="submit" class="btn btn-primary">Ajouter l'utilisateur</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Tournament Modal -->
     <div id="tournament-modal" class="modal hidden">
         <div class="modal-content">
             <span class="close">&times;</span>
@@ -248,10 +292,11 @@
         </div>
     </div>
 
-    <script src="js/performance.js"></script>
-    <script src="js/auth.js"></script>
+    <!-- Load scripts in correct order: app.js first, then others -->
     <script src="js/app.js"></script>
+    <script src="js/auth.js"></script>
     <script src="js/admin.js"></script>
+    <script src="js/performance.js"></script>
 </body>
 </html>
 

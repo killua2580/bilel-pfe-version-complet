@@ -10,29 +10,41 @@ const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYm
 
 document.addEventListener('DOMContentLoaded', async () => {
     // Initialiser Supabase
-    supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+    try {
+        supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+        console.log('Supabase initialized successfully');
+    } catch (error) {
+        console.error('Failed to initialize Supabase:', error);
+        alert('Erreur de connexion à la base de données');
+        return;
+    }
     
-    // Vérifier si l'utilisateur est connecté
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session) {
-        currentUser = session.user;
-        await loadUserProfile();
-        showMainApp();
+    // Exposer gymPower globalement
+    window.gymPower = {
+        showPage,
+        showMainApp,
+        showAuthPage,
+        loadDashboard,
+        participateInTournament,
+        currentUser: () => getCurrentUser(),
+        supabase: () => supabase
+    };
+    
+    // Vérifier s'il y a une session sauvegardée
+    const savedUser = localStorage.getItem('currentUser');
+    if (savedUser) {
+        try {
+            currentUser = JSON.parse(savedUser);
+            window.currentUser = currentUser;
+            showMainApp();
+        } catch (e) {
+            console.error('Error parsing saved user data:', e);
+            localStorage.removeItem('currentUser');
+            showAuthPage();
+        }
     } else {
         showAuthPage();
     }
-    
-    // Écouter les changements d'authentification
-    supabase.auth.onAuthStateChange(async (event, session) => {
-        if (event === 'SIGNED_IN') {
-            currentUser = session.user;
-            await loadUserProfile();
-            showMainApp();
-        } else if (event === 'SIGNED_OUT') {
-            currentUser = null;
-            showAuthPage();
-        }
-    });
     
     // Gestion de la navigation
     setupNavigation();
@@ -43,6 +55,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Gestion des onglets admin
     setupAdminTabs();
 });
+
+// Fonction utilitaire pour récupérer l'utilisateur actuel
+function getCurrentUser() {
+    return window.currentUser || currentUser;
+}
 
 // Fonctions de navigation
 function setupNavigation() {
@@ -104,12 +121,14 @@ function showMainApp() {
     document.getElementById('auth').classList.add('hidden');
     
     // Synchroniser les variables currentUser
-    if (window.currentUser) {
-        currentUser = window.currentUser;
+    const user = getCurrentUser();
+    if (user) {
+        currentUser = user;
+        window.currentUser = user;
     }
     
     // Vérifier si l'utilisateur est admin
-    if (window.currentUser && (window.currentUser.email === 'admin@admin.com' || window.currentUser.id === 'admin-id')) {
+    if (user && (user.email === 'admin@admin.com' || user.id === 'admin-id' || user.isAdmin)) {
         document.getElementById('admin-nav').classList.remove('hidden');
     }
     
@@ -117,10 +136,26 @@ function showMainApp() {
     showPage('home');
 }
 
+function showAuthPage() {
+    document.getElementById('main-header').classList.add('hidden');
+    document.getElementById('auth').classList.remove('hidden');
+    
+    // Masquer toutes les autres pages
+    const pages = document.querySelectorAll('.page:not(#auth)');
+    pages.forEach(page => page.classList.add('hidden'));
+}
+
 // Fonctions d'authentification
 async function logout() {
     try {
-        await supabase.auth.signOut();
+        // Nettoyer les données utilisateur
+        currentUser = null;
+        window.currentUser = null;
+        localStorage.removeItem('currentUser');
+        
+        // Masquer le menu admin
+        document.getElementById('admin-nav').classList.add('hidden');
+        
         showAuthPage();
     } catch (error) {
         console.error('Erreur lors de la déconnexion:', error);
@@ -128,27 +163,14 @@ async function logout() {
     }
 }
 
-async function loadUserProfile() {
-    if (!currentUser) return;
-    
-    try {
-        const { data, error } = await supabase
-            .from('users')
-            .select('*')
-            .eq('id', currentUser.id)
-            .single();
-            
-        if (error) throw error;
-        
-        // Stocker les données utilisateur
-        currentUser.profile = data;
-    } catch (error) {
-        console.error('Erreur lors du chargement du profil:', error);
-    }
-}
-
 // Fonctions de chargement de contenu
 async function loadDashboard() {
+    const user = getCurrentUser();
+    if (!user) {
+        console.error('Utilisateur non connecté');
+        return;
+    }
+    
     try {
         // Charger les tournois disponibles
         await loadAvailableTournaments();
@@ -168,6 +190,8 @@ async function loadDashboard() {
 
 async function loadAvailableTournaments() {
     const container = document.getElementById('available-tournaments');
+    if (!container) return;
+    
     container.innerHTML = '<div class="loading">Chargement...</div>';
     
     try {
@@ -202,7 +226,15 @@ async function loadAvailableTournaments() {
 
 async function loadUpcomingTournaments() {
     const container = document.getElementById('upcoming-tournaments');
+    if (!container) return;
+    
     container.innerHTML = '<div class="loading">Chargement...</div>';
+    
+    const user = getCurrentUser();
+    if (!user) {
+        container.innerHTML = '<p>Erreur: utilisateur non connecté</p>';
+        return;
+    }
     
     try {
         const { data, error } = await supabase
@@ -215,13 +247,13 @@ async function loadUpcomingTournaments() {
                     date
                 )
             `)
-            .eq('user_id', currentUser.id);
+            .eq('user_id', user.id);
             
         if (error) throw error;
         
         const upcomingTournaments = data
             .map(p => p.tournaments)
-            .filter(t => new Date(t.date) > new Date());
+            .filter(t => t && new Date(t.date) > new Date());
         
         if (upcomingTournaments.length === 0) {
             container.innerHTML = '<p>Aucun tournoi à venir</p>';
@@ -243,7 +275,15 @@ async function loadUpcomingTournaments() {
 
 async function loadPastTournaments() {
     const container = document.getElementById('past-tournaments');
+    if (!container) return;
+    
     container.innerHTML = '<div class="loading">Chargement...</div>';
+    
+    const user = getCurrentUser();
+    if (!user) {
+        container.innerHTML = '<p>Erreur: utilisateur non connecté</p>';
+        return;
+    }
     
     try {
         const { data, error } = await supabase
@@ -256,13 +296,13 @@ async function loadPastTournaments() {
                     date
                 )
             `)
-            .eq('user_id', currentUser.id);
+            .eq('user_id', user.id);
             
         if (error) throw error;
         
         const pastTournaments = data
             .map(p => p.tournaments)
-            .filter(t => new Date(t.date) < new Date());
+            .filter(t => t && new Date(t.date) < new Date());
         
         if (pastTournaments.length === 0) {
             container.innerHTML = '<p>Aucun tournoi passé</p>';
@@ -284,13 +324,21 @@ async function loadPastTournaments() {
 
 async function loadNotifications() {
     const container = document.getElementById('notifications-list');
+    if (!container) return;
+    
     container.innerHTML = '<div class="loading">Chargement...</div>';
+    
+    const user = getCurrentUser();
+    if (!user) {
+        container.innerHTML = '<p>Erreur: utilisateur non connecté</p>';
+        return;
+    }
     
     try {
         const { data, error } = await supabase
             .from('notifications')
             .select('*')
-            .eq('user_id', currentUser.id)
+            .eq('user_id', user.id)
             .order('created_at', { ascending: false })
             .limit(5);
             
@@ -316,20 +364,32 @@ async function loadNotifications() {
 
 // Fonction pour participer à un tournoi
 async function participateInTournament(tournamentId) {
+    const user = getCurrentUser();
+    if (!user) {
+        alert('Veuillez vous connecter pour participer à un tournoi');
+        return;
+    }
+    
     try {
         const { error } = await supabase
             .from('participants')
             .insert([
                 {
                     tournament_id: tournamentId,
-                    user_id: currentUser.id
+                    user_id: user.id
                 }
             ]);
             
-        if (error) throw error;
-        
-        alert('Inscription réussie au tournoi !');
-        loadDashboard(); // Recharger le tableau de bord
+        if (error) {
+            if (error.code === '23505') { // Contrainte d'unicité violée
+                alert('Vous êtes déjà inscrit à ce tournoi !');
+            } else {
+                throw error;
+            }
+        } else {
+            alert('Inscription réussie au tournoi !');
+            loadDashboard(); // Recharger le tableau de bord
+        }
     } catch (error) {
         console.error('Erreur lors de l\'inscription:', error);
         alert('Erreur lors de l\'inscription au tournoi');
@@ -390,32 +450,30 @@ function formatDate(dateString) {
 
 function showLoading(containerId) {
     const container = document.getElementById(containerId);
-    container.innerHTML = '<div class="loading">Chargement...</div>';
+    if (container) {
+        container.innerHTML = '<div class="loading">Chargement...</div>';
+    }
 }
 
 function showError(containerId, message = 'Erreur lors du chargement') {
     const container = document.getElementById(containerId);
-    container.innerHTML = `<p class="error">${message}</p>`;
+    if (container) {
+        container.innerHTML = `<p class="error">${message}</p>`;
+    }
 }
-
-// Exposer les fonctions globalement pour les utiliser dans d'autres fichiers
-window.gymPower = {
-    showPage,
-    showMainApp,
-    loadDashboard,
-    participateInTournament,
-    currentUser: () => window.currentUser || currentUser,
-    supabase: () => supabase
-};
-
-
-
-// Fonctions spécifiques aux combattants
 
 // Charger la page des tournois
 async function loadTournaments() {
     const container = document.getElementById('tournaments-container');
-    showLoading('tournaments-container');
+    if (!container) return;
+    
+    container.innerHTML = '<div class="loading">Chargement...</div>';
+    
+    const user = getCurrentUser();
+    if (!user) {
+        container.innerHTML = '<p>Veuillez vous connecter pour voir les tournois</p>';
+        return;
+    }
     
     try {
         const { data, error } = await supabase
@@ -434,16 +492,17 @@ async function loadTournaments() {
         const { data: participations, error: partError } = await supabase
             .from('participants')
             .select('tournament_id')
-            .eq('user_id', currentUser.id);
+            .eq('user_id', user.id);
             
-        if (partError) throw partError;
+        if (partError) {
+            console.error('Error loading participations:', partError);
+        }
         
-        const participatedTournaments = participations.map(p => p.tournament_id);
+        const participatedTournaments = participations ? participations.map(p => p.tournament_id) : [];
         
         container.innerHTML = data.map(tournament => {
             const isParticipating = participatedTournaments.includes(tournament.id);
             const isPast = new Date(tournament.date) < new Date();
-            const isUpcoming = new Date(tournament.date) > new Date();
             
             let statusBadge = '';
             let actionButton = '';
@@ -475,55 +534,84 @@ async function loadTournaments() {
             `;
         }).join('');
     } catch (error) {
-        showError('tournaments-container', 'Erreur lors du chargement des tournois');
+        container.innerHTML = '<p class="error">Erreur lors du chargement des tournois</p>';
         console.error('Erreur:', error);
     }
 }
 
 // Charger la page de profil
 async function loadProfile() {
-    if (!currentUser || !currentUser.profile) {
+    const user = getCurrentUser();
+    if (!user || !user.profile) {
         showError('profile-container', 'Impossible de charger le profil');
         return;
     }
     
-    const profile = currentUser.profile;
+    const profile = user.profile;
     
     // Remplir les informations du profil
-    document.getElementById('profile-name').textContent = `${profile.first_name} ${profile.last_name}`;
-    document.getElementById('profile-email').textContent = profile.email;
+    const profileName = document.getElementById('profile-name');
+    const profileEmail = document.getElementById('profile-email');
+    
+    if (profileName) {
+        profileName.textContent = `${profile.first_name} ${profile.last_name}`;
+    }
+    if (profileEmail) {
+        profileEmail.textContent = profile.email;
+    }
     
     // Remplir le formulaire de modification
-    document.getElementById('profile-firstname').value = profile.first_name || '';
-    document.getElementById('profile-lastname').value = profile.last_name || '';
-    document.getElementById('profile-weight').value = profile.weight || '';
-    document.getElementById('profile-age').value = profile.age || '';
+    const fields = {
+        'profile-firstname': profile.first_name || '',
+        'profile-lastname': profile.last_name || '',
+        'profile-weight': profile.weight || '',
+        'profile-age': profile.age || ''
+    };
+    
+    Object.entries(fields).forEach(([id, value]) => {
+        const element = document.getElementById(id);
+        if (element) {
+            element.value = value;
+        }
+    });
     
     // Afficher la photo de profil si elle existe
     const profileImage = document.getElementById('profile-image');
-    if (profile.photo) {
-        profileImage.src = profile.photo;
-        profileImage.style.display = 'block';
-    } else {
-        profileImage.style.display = 'none';
+    if (profileImage) {
+        if (profile.photo) {
+            profileImage.src = profile.photo;
+            profileImage.style.display = 'block';
+        } else {
+            profileImage.style.display = 'none';
+        }
     }
     
     // Gérer la soumission du formulaire de profil
     const profileForm = document.getElementById('profile-form');
-    profileForm.onsubmit = async (e) => {
-        e.preventDefault();
-        await updateProfile();
-    };
+    if (profileForm) {
+        profileForm.onsubmit = async (e) => {
+            e.preventDefault();
+            await updateProfile();
+        };
+    }
 }
 
 // Mettre à jour le profil
 async function updateProfile() {
     const form = document.getElementById('profile-form');
+    if (!form) return;
+    
     const submitBtn = form.querySelector('button[type="submit"]');
     const originalText = submitBtn.textContent;
     
     submitBtn.textContent = 'Mise à jour...';
     submitBtn.disabled = true;
+    
+    const user = getCurrentUser();
+    if (!user) {
+        alert('Utilisateur non connecté');
+        return;
+    }
     
     try {
         const updatedData = {
@@ -536,12 +624,14 @@ async function updateProfile() {
         const { error } = await supabase
             .from('users')
             .update(updatedData)
-            .eq('id', currentUser.id);
+            .eq('id', user.id);
             
         if (error) throw error;
         
         // Mettre à jour les données locales
-        currentUser.profile = { ...currentUser.profile, ...updatedData };
+        user.profile = { ...user.profile, ...updatedData };
+        window.currentUser = user;
+        localStorage.setItem('currentUser', JSON.stringify(user));
         
         alert('Profil mis à jour avec succès !');
         
@@ -576,6 +666,9 @@ async function markNotificationAsRead(notificationId) {
 
 // Obtenir les combats de l'utilisateur
 async function getUserFights() {
+    const user = getCurrentUser();
+    if (!user) return [];
+    
     try {
         const { data, error } = await supabase
             .from('fights')
@@ -585,11 +678,11 @@ async function getUserFights() {
                 fighter1:users!fights_fighter1_id_fkey (first_name, last_name),
                 fighter2:users!fights_fighter2_id_fkey (first_name, last_name)
             `)
-            .or(`fighter1_id.eq.${currentUser.id},fighter2_id.eq.${currentUser.id}`);
+            .or(`fighter1_id.eq.${user.id},fighter2_id.eq.${user.id}`);
             
         if (error) throw error;
         
-        return data;
+        return data || [];
     } catch (error) {
         console.error('Erreur lors du chargement des combats:', error);
         return [];
@@ -599,10 +692,11 @@ async function getUserFights() {
 // Afficher les combats de l'utilisateur dans les notifications
 async function loadUserFights() {
     const fights = await getUserFights();
+    const user = getCurrentUser();
     
-    if (fights.length > 0) {
+    if (fights.length > 0 && user) {
         const fightNotifications = fights.map(fight => {
-            const opponent = fight.fighter1_id === currentUser.id ? fight.fighter2 : fight.fighter1;
+            const opponent = fight.fighter1_id === user.id ? fight.fighter2 : fight.fighter1;
             return {
                 title: `Combat programmé - ${fight.tournaments.name}`,
                 message: `Vous affronterez ${opponent.first_name} ${opponent.last_name}`,
@@ -613,17 +707,19 @@ async function loadUserFights() {
         
         // Ajouter ces notifications à l'affichage
         const container = document.getElementById('notifications-list');
-        const existingContent = container.innerHTML;
-        
-        const fightsHtml = fightNotifications.map(notification => `
-            <div class="notification-item unread">
-                <h5>${notification.title}</h5>
-                <p>${notification.message}</p>
-                <p class="time">${formatDate(notification.created_at)}</p>
-            </div>
-        `).join('');
-        
-        container.innerHTML = fightsHtml + existingContent;
+        if (container) {
+            const existingContent = container.innerHTML;
+            
+            const fightsHtml = fightNotifications.map(notification => `
+                <div class="notification-item unread">
+                    <h5>${notification.title}</h5>
+                    <p>${notification.message}</p>
+                    <p class="time">${formatDate(notification.created_at)}</p>
+                </div>
+            `).join('');
+            
+            container.innerHTML = fightsHtml + existingContent;
+        }
     }
 }
 
@@ -643,49 +739,25 @@ function searchTournaments(query) {
     });
 }
 
-// Ajouter la recherche à la page des tournois
-function addTournamentSearch() {
-    const tournamentsPage = document.getElementById('tournaments');
-    const pageHeader = tournamentsPage.querySelector('.page-header');
-    
-    const searchContainer = document.createElement('div');
-    searchContainer.className = 'search-container';
-    searchContainer.innerHTML = `
-        <input type="text" id="tournament-search" placeholder="Rechercher un tournoi..." class="search-input">
-    `;
-    
-    pageHeader.appendChild(searchContainer);
-    
-    const searchInput = document.getElementById('tournament-search');
-    searchInput.addEventListener('input', (e) => {
-        searchTournaments(e.target.value);
-    });
-}
-
-// Mettre à jour les fonctions exposées globalement
-window.gymPower = {
-    ...window.gymPower,
-    loadTournaments,
-    loadProfile,
-    updateProfile,
-    markNotificationAsRead,
-    getUserFights,
-    loadUserFights,
-    searchTournaments
-};
-
-
 // Charger le panneau d'administration
 async function loadAdminPanel() {
     // Vérifier si l'utilisateur est admin
-    if (!window.currentUser || (window.currentUser.email !== 'admin@admin.com' && window.currentUser.id !== 'admin-id')) {
-        document.getElementById('admin').innerHTML = '<div class="error">Accès non autorisé</div>';
+    const user = getCurrentUser();
+    if (!user || (user.email !== 'admin@admin.com' && user.id !== 'admin-id' && !user.isAdmin)) {
+        const adminContainer = document.getElementById('admin');
+        if (adminContainer) {
+            adminContainer.innerHTML = '<div class="error">Accès non autorisé</div>';
+        }
         return;
     }
     
-    // Charger les utilisateurs par défaut
+    // Charger les utilisateurs par défaut et configurer les onglets
     if (window.adminFunctions) {
         window.adminFunctions.loadUsers();
+        // Assurer que les événements des onglets sont configurés
+        if (window.adminFunctions.setupAdminTabEvents) {
+            window.adminFunctions.setupAdminTabEvents();
+        }
     } else {
         console.error('adminFunctions not available');
     }
