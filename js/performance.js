@@ -31,15 +31,15 @@ class PerformanceMonitor {
 // Instance globale du moniteur de performance
 window.perfMonitor = new PerformanceMonitor();
 
-// Optimisation des requêtes Supabase
-class SupabaseOptimizer {
-    constructor(supabase) {
-        this.supabase = supabase;
+// Optimisation des requêtes API
+class APIOptimizer {
+    constructor(api) {
+        this.api = api;
         this.queryCache = new Map();
         this.cacheTimeout = 5 * 60 * 1000; // 5 minutes
     }
 
-    async cachedQuery(table, query, cacheKey) {
+    async cachedRequest(endpoint, method = 'GET', data = null, cacheKey) {
         const cached = this.queryCache.get(cacheKey);
         
         if (cached && (Date.now() - cached.timestamp) < this.cacheTimeout) {
@@ -47,8 +47,8 @@ class SupabaseOptimizer {
             return cached.data;
         }
 
-        console.log(`Cache miss for ${cacheKey}, fetching from database`);
-        const response = await this.supabase.from(table).select(query);
+        console.log(`Cache miss for ${cacheKey}, fetching from API`);
+        const response = await this.api.makeRequest(endpoint, method, data);
         
         if (response.data) {
             this.queryCache.set(cacheKey, {
@@ -203,9 +203,9 @@ class MemoryOptimizer {
 
 // Initialisation des optimisations
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialiser l'optimiseur Supabase
-    if (window.gymPower && window.gymPower.supabase) {
-        window.supabaseOptimizer = new SupabaseOptimizer(window.gymPower.supabase());
+    // Initialiser l'optimiseur API
+    if (window.api) {
+        window.apiOptimizer = new APIOptimizer(window.api);
     }
 
     // Optimiser les images
@@ -224,7 +224,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Export des classes pour utilisation globale
 window.PerformanceMonitor = PerformanceMonitor;
-window.SupabaseOptimizer = SupabaseOptimizer;
+window.APIOptimizer = APIOptimizer;
 window.ImageOptimizer = ImageOptimizer;
 window.DOMOptimizer = DOMOptimizer;
 window.EventOptimizer = EventOptimizer;

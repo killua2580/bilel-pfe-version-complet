@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test API PHP - Gym Power</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        button { padding: 10px 15px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>🥊 Test API PHP - Gym Power</h1>
+    
+    <div class="test-section">
+        <h2>Configuration API</h2>
+        <p>URL de base de l'API: <span id="api-url"></span></p>
+        <button onclick="testConnection()">Tester la connexion</button>
+        <div id="connection-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test d'inscription</h2>
+        <button onclick="testSignup()">Tester l'inscription</button>
+        <div id="signup-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test de connexion</h2>
+        <button onclick="testLogin()">Tester la connexion</button>
+        <div id="login-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test des tournois</h2>
+        <button onclick="testTournaments()">Lister les tournois</button>
+        <div id="tournaments-result"></div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script>
+        // Configuration pour les tests
+        const testUser = {
+            email: 'test@gym-power.com',
+            password: 'test123',
+            firstName: 'Test',
+            lastName: 'User',
+            weight: 70,
+            birthDate: '1990-01-01'
+        };
+
+        let api;
+
+        // Initialiser l'API
+        document.addEventListener('DOMContentLoaded', function() {
+            try {
+                api = new GymPowerAPI();
+                document.getElementById('api-url').textContent = api.baseURL;
+            } catch (error) {
+                console.error('Erreur lors de l\'initialisation de l\'API:', error);
+                document.getElementById('api-url').textContent = 'Erreur d\'initialisation';
+            }
+        });
+
+        async function testConnection() {
+            const resultDiv = document.getElementById('connection-result');
+            try {
+                resultDiv.innerHTML = '<p>Test de connexion en cours...</p>';
+                
+                // Test simple avec une requête GET vers l'API
+                const response = await fetch(api.baseURL, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.text();
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            <h3>✅ Connexion réussie!</h3>
+                            <pre>${data}</pre>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            <h3>❌ Erreur de connexion</h3>
+                            <p>Status: ${response.status}</p>
+                            <pre>${await response.text()}</pre>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <h3>❌ Erreur de connexion</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        async function testSignup() {
+            const resultDiv = document.getElementById('signup-result');
+            try {
+                resultDiv.innerHTML = '<p>Test d\'inscription en cours...</p>';
+                
+                const result = await api.signup(testUser);
+                
+                resultDiv.innerHTML = `
+                    <div class="success">
+                        <h3>✅ Inscription réussie!</h3>
+                        <pre>${JSON.stringify(result, null, 2)}</pre>
+                    </div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <h3>❌ Erreur d'inscription</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        async function testLogin() {
+            const resultDiv = document.getElementById('login-result');
+            try {
+                resultDiv.innerHTML = '<p>Test de connexion en cours...</p>';
+                
+                const result = await api.login(testUser.email, testUser.password);
+                
+                resultDiv.innerHTML = `
+                    <div class="success">
+                        <h3>✅ Connexion réussie!</h3>
+                        <pre>${JSON.stringify(result, null, 2)}</pre>
+                    </div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <h3>❌ Erreur de connexion</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        async function testTournaments() {
+            const resultDiv = document.getElementById('tournaments-result');
+            try {
+                resultDiv.innerHTML = '<p>Test des tournois en cours...</p>';
+                
+                const tournaments = await api.getTournaments();
+                
+                resultDiv.innerHTML = `
+                    <div class="success">
+                        <h3>✅ Tournois récupérés!</h3>
+                        <p>Nombre de tournois: ${tournaments.length}</p>
+                        <pre>${JSON.stringify(tournaments, null, 2)}</pre>
+                    </div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <h3>❌ Erreur lors de la récupération des tournois</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>

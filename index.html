@@ -3,9 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gym Power</title>
-    <link rel="stylesheet" href="css/style.css">
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <title>Gym Power</title>    <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
     <header id="main-header" class="hidden">
@@ -290,12 +288,11 @@
                 <button type="submit" class="btn btn-primary">Créer</button>
             </form>
         </div>
-    </div>
-
-    <!-- Load scripts in correct order: app.js first, then others -->
-    <script src="js/app.js"></script>
-    <script src="js/auth.js"></script>
-    <script src="js/admin.js"></script>
+    </div>    <!-- Load scripts in correct order: api.js first, then others -->
+    <script src="js/api.js"></script>
+    <script src="js/app-php.js"></script>
+    <script src="js/auth-php.js"></script>
+    <script src="js/admin-php.js"></script>
     <script src="js/performance.js"></script>
 </body>
 </html>
